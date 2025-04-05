@@ -1,5 +1,24 @@
-html {
+:root {
+  --main-bg: #1e1e1e;
+  --header-bg: #2f2f2f;
+  --card-bg: #2f2f2f;
+  --text-color: #eaeaea;
+  --accent-blue: #0b6fd5;
+  --accent-blue-dark: #0e3f75;
+  --dropzone-bg: #2a2a2a;
+  --dropzone-hover: #37414f;
+  --success-bg: #1f3321;
+  --success-border: #3c6840;
+  --success-text: #a9f0a9;
+}
+
+html, body {
+  background-color: var(--main-bg);
+  color: var(--text-color);
   font-size: 14px;
+  position: relative;
+  min-height: 100%;
+  font-family: "Segoe UI", sans-serif;
 }
 
 @media (min-width: 768px) {
@@ -8,24 +27,207 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
 }
 
-html {
+a:hover {
+  color: var(--accent-blue-dark);
+}
+
+.bg-darkgray {
+  background-color: var(--header-bg);
+}
+
+.col-blue {
+  color: var(--accent-blue);
+}
+
+.text-wo-dec {
+  text-decoration: none;
+}
+
+.navbar,
+header {
+  background-color: var(--header-bg);
+  color: var(--text-color);
+  padding: 0;
+  margin: 0;
+}
+
+.center-self {
+  align-self: center;
+  justify-self: center;
+}
+
+#header-logo {
+  width: 42px;
+  aspect-ratio: initial;
+  margin: 0 6px 0 0;
+}
+
+.navbar-nav .nav-link {
+  color: var(--text-color) !important;
+}
+
+.navbar-brand {
+  margin: 0;
+}
+
+.navbar-toggler {
+  border-color: var(--accent-blue);
+}
+
+.navbar-toggler-icon {
+  filter: invert(1);
+}
+
+.dropdown-menu {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  border: none;
+}
+
+.dropdown-item {
+  color: var(--text-color);
+}
+
+.dropdown-item:hover {
+  background-color: var(--dropzone-hover);
+  color: var(--accent-blue);
+}
+
+.border-bottom-blue {
+  border-bottom: 1px solid var(--accent-blue);
+}
+
+footer {
+  position: initial;
+  background-color: var(--header-bg);
+  color: var(--text-color);
+  border-top: 1px solid #444;
+  padding: 2rem 0;
+}
+
+footer div {
+  padding-left: 1rem;
+}
+
+.upload-container {
+  max-width: 600px;
+  margin: 14vh auto;
+  padding: 30px;
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.upload-container h1 {
+  margin-bottom: 10px;
+  font-size: 2rem;
+  color: var(--text-color);
+}
+
+.upload-container p {
+  margin-bottom: 20px;
+  color: #ccc;
+}
+
+.dropzone {
   position: relative;
-  min-height: 100%;
+  border: 3px dashed var(--accent-blue);
+  border-radius: 16px;
+  padding: 15vh 5vh;
+  background-color: var(--dropzone-bg);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: #aaa;
 }
 
-body {
-  margin-bottom: 60px;
+.dropzone.dragover {
+  background-color: var(--dropzone-hover);
+  border-color: var(--accent-blue-dark);
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
+.dropzone input[type="file"] {
+  display: none;
+}
+
+.dropzone span {
+  font-size: 16px;
+}
+
+.btn {
+  margin-top: 20px;
+  padding: 10px 30px;
+  background-color: var(--accent-blue);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn:hover {
+  background-color: var(--accent-blue-dark);
+  color: #fff;
+}
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--accent-blue);
+}
+
+.result-message {
+  margin-top: 20px;
+  padding: 10px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+  border-radius: 10px;
+}
+
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+  color: #aaa;
   text-align: end;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+input.form-control,
+select.form-select,
+textarea.form-control {
+  background-color: #1f1f1f;
+  border: 1px solid #555;
+  color: var(--text-color);
+}
+
+input.form-control::placeholder,
+select.form-select::placeholder,
+textarea.form-control::placeholder {
+  color: #888;
+}
+
+input.form-control:focus,
+select.form-select:focus,
+textarea.form-control:focus {
+  background-color: #1f1f1f;
+  color: var(--text-color);
+  border-color: var(--accent-blue);
+}
+
+.pad15-vert {
+  padding: 15px 0;
 }

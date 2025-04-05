@@ -2,7 +2,50 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@{
+    ViewData["Title"] = "Конвертер изображений";
+}
+
+<div class="upload-container">
+    <h1>Конвертер изображений</h1>
+    <p>Перетащите изображение или нажмите, чтобы выбрать файл</p>
+
+    <form asp-controller="Image" asp-action="Upload" enctype="multipart/form-data" method="post">
+        <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" name="imageFile" accept="image/*" />
+            <span>Перетащите изображение сюда или нажмите для выбора</span>
+        </div>
+        <button type="submit" class="btn">Загрузить</button>
+    </form>
+
+    @if (ViewBag.Message != null)
+    {
+        <div class="result-message">
+            <p>@ViewBag.Message</p>
+        </div>
+    }
 </div>
+
+@section Scripts {
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+        });
+    </script>
+}
