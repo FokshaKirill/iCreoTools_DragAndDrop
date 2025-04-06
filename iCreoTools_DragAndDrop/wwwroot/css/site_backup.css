@@ -1,6 +1,6 @@
 :root {
-  --main-bg: #0f1722;
-  --header-bg: #1B283A;
+  --main-bg: #1e1e1e;
+  --header-bg: #2f2f2f;
   --card-bg: #2f2f2f;
   --text-color: #eaeaea;
   --accent-blue: #0b6fd5;
@@ -10,46 +10,15 @@
   --success-bg: #1f3321;
   --success-border: #3c6840;
   --success-text: #a9f0a9;
-  --gold: #ffe200;
-  --grad-mid: #2b2b2b;
 }
 
 html, body {
-  /*background-color: var(--main-bg);*/
-  background: linear-gradient(to right, var(--main-bg), #2b2b2b, var(--main-bg));
+  background-color: var(--main-bg);
   color: var(--text-color);
   font-size: 14px;
   position: relative;
   min-height: 100%;
   font-family: "Segoe UI", sans-serif;
-  z-index: -100;
-}
-
-.bt-lin-grad {
-  background: linear-gradient(to top, var(--gold), #2c2927, var(--main-bg));
-  width: 76%;
-  height: 50vh;
-  position: absolute;
-  bottom: 0;
-  left: 12%;
-  z-index: -100;
-  opacity: 0.15;
-  transform-style: preserve-3d ;
-  filter: blur(10vh); 
-}
-
-.lin-grad-r {
-  background: linear-gradient(to right, var(--main-bg), var(--grad-mid), var(--main-bg), var(--main-bg));
-  
-}
-
-.lin-grad-l {
-  background: linear-gradient(to left, var(--main-bg), var(--grad-mid), var(--main-bg), var(--main-bg));
-}
-
-.bd-top-radF {
-  border-top-left-radius: 100%;
-  border-top-right-radius: 100%;
 }
 
 @media (min-width: 768px) {
@@ -81,7 +50,7 @@ a:hover {
 
 .navbar,
 header {
-  background-color: transparent;
+  background-color: var(--header-bg);
   color: var(--text-color);
   padding: 0;
   margin: 0;
@@ -107,7 +76,7 @@ header {
 }
 
 .navbar-toggler {
-  border-color: var(--gold);
+  border-color: var(--accent-blue);
 }
 
 .navbar-toggler-icon {
@@ -131,16 +100,8 @@ header {
   color: var(--accent-blue);
 }
 
-.bd-bt {
-  border-bottom: 1px solid;
-}
-
-.bd-top {
-  border-top: 1px solid;
-}
-
-.bd-gold {
-  border-color: var(--gold);
+.border-bottom-blue {
+  border-bottom: 1px solid var(--accent-blue);
 }
 
 footer {
@@ -180,15 +141,11 @@ footer div {
   position: relative;
   border: 3px dashed var(--accent-blue);
   border-radius: 16px;
-  padding: 16vh 5vh;
+  padding: 15vh 5vh;
   background-color: var(--dropzone-bg);
   cursor: pointer;
   transition: background 0.2s ease;
   color: #aaa;
-  align-items: center;
-  justify-content: center;
-  display: flex
-;
 }
 
 .dropzone.dragover {
@@ -271,23 +228,6 @@ textarea.form-control:focus {
   border-color: var(--accent-blue);
 }
 
-.pad1r-vert {
-  padding: 1rem 0;
-}
-
-.bd-top-rad15 {
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
-}
-
-.bd-bt-rad15 {
-  border-bottom-left-radius: 15px;
-  border-bottom-right-radius: 15px;
-}
-
-#png-ico {
-  width: 100px;
-  aspect-ratio: initial;
-  position: absolute;
-  filter: invert(1) opacity(0.1);
+.pad15-vert {
+  padding: 15px 0;
 }
