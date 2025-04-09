@@ -305,7 +305,7 @@
 
   /**
    * --------------------------------------------------------------------------
-   * Bootstrap dom/event-handler.js
+   * Bootstrap dom/event-ws-handler.js
    * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
    * --------------------------------------------------------------------------
    */

@@ -9,12 +9,16 @@
 <div class="upload-container">
     <h1 style="margin-bottom: 25px">Drop or Choose Image</h1>
 
-    <form asp-controller="Image" asp-action="Upload" enctype="multipart/form-data" method="post">
+    <form id="uploadForm">
         <div class="dropzone" id="dropzone">
             <input type="file" id="fileInput" name="imageFile" accept="image/png" />
             <img src="images/png-icon.svg" alt="png-icon" id="png-ico"/>
         </div>
         <button type="submit" class="btn">Cut</button>
+
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
     </form>
 
     @if (ViewBag.Message != null)
@@ -31,20 +35,24 @@
         const fileInput = document.getElementById('fileInput');
 
         dropzone.addEventListener('click', () => fileInput.click());
-
         dropzone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropzone.classList.add('dragover');
         });
-
         dropzone.addEventListener('dragleave', () => {
             dropzone.classList.remove('dragover');
         });
-
         dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropzone.classList.remove('dragover');
             fileInput.files = e.dataTransfer.files;
         });
+
+        window.addEventListener("DOMContentLoaded", () => {
+            if (window.initSocketHandler) initSocketHandler();
+        });
     </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js" asp-append-version="true"></script>
+    <script src="js/ws-handler.js" asp-append-version="true"></script>
 }
