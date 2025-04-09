@@ -21,6 +21,12 @@
         </div>
     </form>
 
+    <div id="preview-container" style="display: none; margin-top: 20px;">
+        <canvas id="preview-canvas"></canvas>
+        <div id="download-status" style="display: none; margin-top: 10px; color: green;"></div>
+        <button id="download-btn" class="btn">Download ZIP</button>
+    </div>
+
     @if (ViewBag.Message != null)
     {
         <div class="result-message">

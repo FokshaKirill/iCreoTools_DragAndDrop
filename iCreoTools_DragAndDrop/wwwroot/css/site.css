@@ -338,3 +338,19 @@ textarea.form-control:focus {
   border-radius: 6px;
   transition: width 0.3s ease-in-out; 
 }
+
+#preview-container {
+  text-align: center;
+}
+
+#preview-canvas {
+  border: 1px solid #ccc;
+  max-width: 100%;
+}
+
+#download-btn {
+  display: block;
+  margin-top: 10px;
+  font-family: "Finder";
+  margin: 1rem 33% 0 33%
+}

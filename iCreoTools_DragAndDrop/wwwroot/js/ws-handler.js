@@ -1,5 +1,6 @@
-﻿let socket; // Сокет
-let originalImage; // Исходное фото
+﻿let socket;
+let originalImage; // Для хранения исходного изображения
+let zipData; // Для хранения данных ZIP
 
 window.initSocketHandler = function () {
     socket = new WebSocket("wss://a33336-ee73.s.d-f.pw/connect");
@@ -49,9 +50,41 @@ window.initSocketHandler = function () {
             alert("WebSocket не подключен.");
         }
     });
+
+    // Обработчик кнопки скачивания
+    const downloadBtn = document.getElementById("download-btn");
+    if (downloadBtn) {
+        downloadBtn.addEventListener("click", () => {
+            console.log("Клик по кнопке Download ZIP");
+            if (zipData) {
+                const downloadStatus = document.getElementById("download-status");
+                downloadStatus.textContent = "Скачивание началось...";
+                downloadStatus.style.display = "block";
+
+                const url = URL.createObjectURL(zipData);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "result.zip";
+                a.click();
+                URL.revokeObjectURL(url);
+
+                // Сбрасываем интерфейс после скачивания
+                setTimeout(() => {
+                    document.getElementById("preview-container").style.display = "none";
+                    document.getElementById("progress-bar").style.width = "0%";
+                    downloadBtn.style.display = "none";
+                    downloadStatus.style.display = "none";
+                }, 1000);
+            } else {
+                console.error("ZIP-архив не готов.");
+                alert("ZIP-архив не готов. Попробуйте снова.");
+            }
+        });
+    } else {
+        console.error("Кнопка Download ZIP не найдена.");
+    }
 };
 
-// Функция для обработки сообщений
 function handleMessage(event) {
     let message;
     try {
@@ -62,24 +95,30 @@ function handleMessage(event) {
     }
 
     const progressBar = document.getElementById("progress-bar");
+    const downloadBtn = document.getElementById("download-btn");
 
     if (message.type === "progress") {
         progressBar.style.width = `${message.value}%`;
         console.log(`Прогресс: ${message.value}%`);
+        // Показываем кнопку при 99%+
+        if (message.value >= 99) {
+            downloadBtn.style.display = "block";
+        }
     } else if (message.type === "result") {
         progressBar.style.width = "100%";
         console.log("Получен результат:", message.data);
         createZipFromResult(message.data);
+        downloadBtn.style.display = "block"; // Убедимся, что кнопка видна
     } else if (message.type === "error") {
         console.error("Ошибка от сервера:", message.data);
         alert(`Ошибка на сервере: ${message.data}`);
         progressBar.style.width = "0%";
+        downloadBtn.style.display = "none";
     } else {
         console.warn("Неизвестный тип сообщения:", message);
     }
 }
 
-// Функция для преобразования файла в Base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -89,7 +128,6 @@ function fileToBase64(file) {
     });
 }
 
-// Функция для загрузки изображения
 function loadImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -99,8 +137,7 @@ function loadImage(file) {
     });
 }
 
-// Функция для обрезки изображения
-async function cropImage(image, x, y, width, height) {
+function cropImage(image, x, y, width, height) {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = width;
@@ -113,7 +150,27 @@ async function cropImage(image, x, y, width, height) {
     });
 }
 
-// Функция для создания ZIP
+function drawPreview(image, data) {
+    const canvas = document.getElementById("preview-canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    ctx.drawImage(image, 0, 0);
+
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    data.forEach((item) => {
+        const { X, Y, Width, Height } = item;
+        if (X && Y && Width && Height) {
+            ctx.strokeRect(X, Y, Width, Height);
+        }
+    });
+
+    document.getElementById("preview-container").style.display = "block";
+}
+
 async function createZipFromResult(data) {
     const zip = new JSZip();
 
@@ -129,6 +186,10 @@ async function createZipFromResult(data) {
         return;
     }
 
+    // Рисуем предпросмотр
+    drawPreview(originalImage, data);
+
+    // Создаем ZIP
     for (let i = 0; i < data.length; i++) {
         const item = data[i];
         if (!item || typeof item !== "object") {
@@ -151,15 +212,11 @@ async function createZipFromResult(data) {
     }
 
     try {
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "result.zip";
-        a.click();
-        URL.revokeObjectURL(url);
+        zipData = await zip.generateAsync({ type: "blob" });
+        console.log("ZIP успешно создан, размер:", zipData.size / 1024, "КБ");
     } catch (error) {
         console.error("Ошибка при создании ZIP:", error);
         alert("Не удалось создать ZIP-архив.");
+        zipData = null;
     }
 }
