@@ -1,30 +1,49 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
-}
-
-@{
     ViewData["Title"] = "Конвертер изображений";
+    var baseUrl = ViewBag.BaseUrl ?? $"{Context.Request.Scheme}://{Context.Request.Host}"; 
 }
 
 <div class="upload-container">
-    <h1 style="margin-bottom: 25px">Drop or Choose Image</h1>
+    <h1 style="margin-bottom: 25px">Cutterize and save your time</h1>
 
     <form id="uploadForm">
         <div class="dropzone" id="dropzone">
-            <input type="file" id="fileInput" name="imageFile" accept="image/png" />
+            <input type="file" id="fileInput" name="imageFile" accept="image/png" multiple />
             <img src="images/png-icon.svg" alt="png-icon" id="png-ico"/>
+            <p>Drop or Choose Images</p>
         </div>
         <button type="submit" class="btn">Cut</button>
 
-        <div class="progress-container">
-            <div id="progress-bar" class="progress-bar"></div>
+        <!-- Панель прогресса скрыта по умолчанию -->
+        <div class="progress-container" id="progress-container" style="display: none;">
+            <div id="progress-bar" class="progress-bar">
+                <span id="progress-text">0%</span>
+            </div>
         </div>
     </form>
 
-    <div id="preview-container" style="display: none; margin-top: 20px;">
-        <canvas id="preview-canvas"></canvas>
-        <div id="download-status" style="display: none; margin-top: 10px; color: green;"></div>
-        <button id="download-btn" class="btn">Download ZIP</button>
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">Cutterize and save time</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="preview-images" class="row">
+                        <!-- Карточки с изображениями будут добавляться сюда через JS -->
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col">
+                            <button id="add-more-btn" class="btn btn-secondary w-100">Add more</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if (ViewBag.Message != null)
@@ -37,6 +56,8 @@
 
 @section Scripts {
     <script>
+        window.BaseUrl = @Json.Serialize(baseUrl);
+        
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
 
@@ -57,6 +78,7 @@
         window.addEventListener("DOMContentLoaded", () => {
             if (window.initSocketHandler) initSocketHandler();
         });
+    
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js" asp-append-version="true"></script>

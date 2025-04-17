@@ -14,7 +14,9 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
-        return View();
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                ViewBag.BaseUrl = baseUrl;
+                return View();
     }
 
     public IActionResult Privacy()

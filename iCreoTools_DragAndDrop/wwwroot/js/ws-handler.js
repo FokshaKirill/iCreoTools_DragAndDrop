@@ -1,9 +1,10 @@
 ﻿let socket;
-let originalImage; // Для хранения исходного изображения
-let zipData; // Для хранения данных ZIP
+let originalImages = [];
+let processedResults = [];
 
 window.initSocketHandler = function () {
     socket = new WebSocket("wss://a33336-ee73.s.d-f.pw/connect");
+    const wsUrl = `${socket.url.replace('ws', 'http').replace('connect', '')}/temp/cutter/`;
 
     socket.onopen = () => console.log("WebSocket открыт");
     socket.onerror = (error) => {
@@ -13,116 +14,212 @@ window.initSocketHandler = function () {
     socket.onclose = (event) => {
         console.log("WebSocket закрыт. Код:", event.code, "Причина:", event.reason, "Чистое закрытие:", event.wasClean);
     };
-    socket.onmessage = handleMessage;
+
+    let currentProcessingIndex = null;
+    let resolveMap = new Map();
+
+    socket.onmessage = (event) => {
+        let message;
+        try {
+            message = JSON.parse(event.data);
+        } catch (error) {
+            console.error("Ошибка парсинга сообщения:", error, "Данные:", event.data);
+            return;
+        }
+
+        if (currentProcessingIndex === null) {
+            console.warn("Получено сообщение, но нет активного запроса:", message);
+            return;
+        }
+
+        const { resolve, reject } = resolveMap.get(currentProcessingIndex) || {};
+
+        if (!resolve || !reject) {
+            console.warn("Не найдены промисы для текущего индекса:", currentProcessingIndex);
+            return;
+        }
+
+        if (message.type === "progress") {
+            const progressBar = document.getElementById(`progress-bar-${currentProcessingIndex}`);
+            if (progressBar) {
+                progressBar.style.width = `${message.value}%`;
+                progressBar.textContent = `${Math.round(message.value)}%`;
+                progressBar.setAttribute("aria-valuenow", message.value);
+                console.log(`Прогресс для изображения ${currentProcessingIndex}: ${message.value}%`);
+            }
+        } else if (message.type === "result") {
+            const progressBar = document.getElementById(`progress-bar-${currentProcessingIndex}`);
+            if (progressBar) {
+                progressBar.style.width = "100%";
+                progressBar.textContent = "100%";
+                progressBar.setAttribute("aria-valuenow", 100);
+                progressBar.parentElement.style.display = "none";
+            }
+
+            const imageElement = document.getElementById(`image-${currentProcessingIndex}`);
+            if (imageElement) {
+                imageElement.style.opacity = "0";
+                setTimeout(() => {
+                    imageElement.src = `${wsUrl}${message.previewUrl.split('/').slice(-1)}`;
+                    imageElement.style.opacity = "1";
+                }, 300);
+            }
+
+            resolve({ response: message, index: currentProcessingIndex });
+            resolveMap.delete(currentProcessingIndex);
+        } else if (message.type === "error") {
+            console.error(`Ошибка для изображения ${currentProcessingIndex}:`, message.data);
+            alert(`Ошибка на сервере для изображения ${currentProcessingIndex}: ${message.data}`);
+            reject(new Error(message.data));
+            resolveMap.delete(currentProcessingIndex);
+        } else {
+            console.warn("Неизвестный тип сообщения:", message);
+        }
+    };
+
+    function createImageCard(imgData, index) {
+        const previewImages = document.getElementById("preview-images");
+        const card = document.createElement("div");
+        card.className = "col-md-4 mb-3";
+        card.id = `image-card-${index}`;
+        card.innerHTML = `
+            <div class="card image-card">
+                <div class="card-overlay"></div>
+                <img id="image-${index}" src="${imgData.image.src}" class="card-img-top image-fade" alt="${imgData.name}">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-${index}">0%</div>
+                    </div>
+                    <img src="./images/dwnd-img.png" id="download-btn-${index}" class="download-btn" style="display: none;">
+            </div>
+        `;
+        previewImages.appendChild(card);
+    }
+
+    const sendRequest = (request, index) => {
+        return new Promise((resolve, reject) => {
+            currentProcessingIndex = index;
+            resolveMap.set(index, { resolve, reject });
+
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(request));
+            } else {
+                console.error("WebSocket не открыт.");
+                alert("WebSocket не подключен.");
+                reject(new Error("WebSocket не подключен."));
+                resolveMap.delete(index);
+                currentProcessingIndex = null;
+            }
+        });
+    };
 
     document.getElementById("uploadForm").addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const fileInput = document.getElementById("fileInput");
-        const file = fileInput.files[0];
-        if (!file) return alert("Выберите PNG-файл");
+        const files = fileInput.files;
+        if (!files || files.length === 0) return alert("Выберите один или несколько PNG-файлов");
 
-        if (file.size > 1024 * 1024) {
-            return alert("Файл слишком большой. Выберите файл меньше 1 МБ.");
+        originalImages = [];
+        processedResults = [];
+        const previewImages = document.getElementById("preview-images");
+        previewImages.innerHTML = "";
+        resolveMap.clear();
+        currentProcessingIndex = null;
+
+        const loadPromises = Array.from(files).map(async (file, index) => {
+            if (file.size > 5120 * 5120) {
+                alert(`Файл ${file.name} слишком большой. Выберите файл меньше 5 МБ.`);
+                return null;
+            }
+
+            console.log(`Загрузка ${file.name}... Размер файла:`, file.size / 1024, "КБ");
+
+            const image = await loadImage(file);
+            return { image, file, name: file.name, index };
+        });
+
+        const loadedImages = (await Promise.all(loadPromises)).filter(img => img !== null);
+        originalImages = loadedImages;
+
+        if (originalImages.length === 0) {
+            alert("Нет подходящих файлов для обработки.");
+            return;
         }
 
-        console.log("Отправка данных на сервер... Размер файла:", file.size / 1024, "КБ");
+        originalImages.forEach((imgData, index) => {
+            createImageCard(imgData, index);
+        });
 
-        originalImage = await loadImage(file);
-        const base64 = await fileToBase64(file);
-        console.log("Base64 (первые 50 символов):", base64.substring(0, 50));
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'), {
+            keyboard: true
+        });
+        previewModal.show();
 
-        const request = {
-            Image: base64,
-            Configuration: { AlphaLimit: 0, CheckSum: 0, CutterStep: 5 }
-        };
+        for (const imgData of originalImages) {
+            const base64 = await fileToBase64(imgData.file);
+            console.log(`Base64 для ${imgData.name} (первые 50 символов):`, base64.substring(0, 50));
 
-        if (socket.readyState === WebSocket.OPEN) {
+            const request = {
+                Image: base64,
+                Configuration: { AlphaLimit: 0, CheckSum: 0, CutterStep: 5 }
+            };
+
             try {
-                console.log("Отправка данных, размер JSON:", JSON.stringify(request).length / 1024, "КБ");
-                socket.send(JSON.stringify(request));
+                const { response, index } = await sendRequest(request, imgData.index);
+                if (response.type === "result") {
+                    processedResults[index] = {
+                        previewUrl: response.previewUrl,
+                        zipUrl: response.zipUrl
+                    };
+
+                    const downloadBtn = document.getElementById(`download-btn-${index}`);
+                    downloadBtn.style.display = "block";
+                    downloadBtn.addEventListener("click", () => {
+                        const zipUrl = processedResults[index].zipUrl;
+                        if (zipUrl) {
+                            const a = document.createElement("a");
+                            a.href = `${wsUrl}${zipUrl.split('/').slice(-1)}`;
+                            a.download = `result_${index + 1}.zip`;
+                            a.click();
+                        } else {
+                            alert("ZIP-архив для этого изображения не доступен.");
+                        }
+                    });
+                }
             } catch (error) {
-                console.error("Ошибка при отправке данных:", error);
-                alert("Не удалось отправить данные на сервер.");
+                console.error(`Не удалось обработать изображение ${imgData.name}:`, error);
+                alert(`Не удалось обработать изображение ${imgData.name}. Продолжаем с остальными...`);
             }
-        } else {
-            console.error("WebSocket не открыт.");
-            alert("WebSocket не подключен.");
+        }
+
+        if (processedResults.length === 0) {
+            alert("Не удалось обработать ни одно изображение.");
+            previewModal.hide();
         }
     });
 
-    // Обработчик кнопки скачивания
-    const downloadBtn = document.getElementById("download-btn");
-    if (downloadBtn) {
-        downloadBtn.addEventListener("click", () => {
-            console.log("Клик по кнопке Download ZIP");
-            if (zipData) {
-                const downloadStatus = document.getElementById("download-status");
-                downloadStatus.textContent = "Скачивание началось...";
-                downloadStatus.style.display = "block";
-
-                const url = URL.createObjectURL(zipData);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "result.zip";
-                a.click();
-                URL.revokeObjectURL(url);
-
-                // Сбрасываем интерфейс после скачивания
-                setTimeout(() => {
-                    document.getElementById("preview-container").style.display = "none";
-                    document.getElementById("progress-bar").style.width = "0%";
-                    downloadBtn.style.display = "none";
-                    downloadStatus.style.display = "none";
-                }, 1000);
-            } else {
-                console.error("ZIP-архив не готов.");
-                alert("ZIP-архив не готов. Попробуйте снова.");
-            }
+    const addMoreBtn = document.getElementById("add-more-btn");
+    if (addMoreBtn) {
+        addMoreBtn.addEventListener("click", () => {
+            const fileInput = document.getElementById("fileInput");
+            fileInput.click();
         });
-    } else {
-        console.error("Кнопка Download ZIP не найдена.");
-    }
-};
-
-function handleMessage(event) {
-    let message;
-    try {
-        message = JSON.parse(event.data);
-    } catch (error) {
-        console.error("Ошибка парсинга сообщения:", error, "Данные:", event.data);
-        return;
     }
 
-    const progressBar = document.getElementById("progress-bar");
-    const downloadBtn = document.getElementById("download-btn");
-
-    if (message.type === "progress") {
-        progressBar.style.width = `${message.value}%`;
-        console.log(`Прогресс: ${message.value}%`);
-        // Показываем кнопку при 99%+
-        if (message.value >= 99) {
-            downloadBtn.style.display = "block";
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+        const files = e.target.files;
+        if (files.length > 0) {
+            document.getElementById("uploadForm").dispatchEvent(new Event("submit"));
         }
-    } else if (message.type === "result") {
-        progressBar.style.width = "100%";
-        console.log("Получен результат:", message.data);
-        createZipFromResult(message.data);
-        downloadBtn.style.display = "block"; // Убедимся, что кнопка видна
-    } else if (message.type === "error") {
-        console.error("Ошибка от сервера:", message.data);
-        alert(`Ошибка на сервере: ${message.data}`);
-        progressBar.style.width = "0%";
-        downloadBtn.style.display = "none";
-    } else {
-        console.warn("Неизвестный тип сообщения:", message);
-    }
-}
+    });
+};
 
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onload = () => {
+            resolve(reader.result.split(",")[1]);
+        };
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
@@ -135,88 +232,4 @@ function loadImage(file) {
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
     });
-}
-
-function cropImage(image, x, y, width, height) {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = width;
-    canvas.height = height;
-    ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
-    return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-            resolve(blob);
-        }, "image/png");
-    });
-}
-
-function drawPreview(image, data) {
-    const canvas = document.getElementById("preview-canvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = image.width;
-    canvas.height = image.height;
-
-    ctx.drawImage(image, 0, 0);
-
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    data.forEach((item) => {
-        const { X, Y, Width, Height } = item;
-        if (X && Y && Width && Height) {
-            ctx.strokeRect(X, Y, Width, Height);
-        }
-    });
-
-    document.getElementById("preview-container").style.display = "block";
-}
-
-async function createZipFromResult(data) {
-    const zip = new JSZip();
-
-    if (!Array.isArray(data)) {
-        console.error("Ожидался массив данных, получено:", data);
-        alert("Ошибка: сервер отправил некорректные данные.");
-        return;
-    }
-
-    if (!originalImage) {
-        console.error("Исходное изображение не загружено.");
-        alert("Ошибка: исходное изображение недоступно.");
-        return;
-    }
-
-    // Рисуем предпросмотр
-    drawPreview(originalImage, data);
-
-    // Создаем ZIP
-    for (let i = 0; i < data.length; i++) {
-        const item = data[i];
-        if (!item || typeof item !== "object") {
-            console.error(`Некорректный формат данных для элемента ${i}:`, item);
-            continue;
-        }
-
-        const { X, Y, Width, Height } = item;
-        if (!X || !Y || !Width || !Height) {
-            console.error(`Отсутствуют координаты или размеры для элемента ${i}:`, item);
-            continue;
-        }
-
-        try {
-            const imgBlob = await cropImage(originalImage, X, Y, Width, Height);
-            zip.file(`cut_${i + 1}.png`, imgBlob);
-        } catch (error) {
-            console.error(`Ошибка при обрезке изображения ${i + 1}:`, error);
-        }
-    }
-
-    try {
-        zipData = await zip.generateAsync({ type: "blob" });
-        console.log("ZIP успешно создан, размер:", zipData.size / 1024, "КБ");
-    } catch (error) {
-        console.error("Ошибка при создании ZIP:", error);
-        alert("Не удалось создать ZIP-архив.");
-        zipData = null;
-    }
 }
