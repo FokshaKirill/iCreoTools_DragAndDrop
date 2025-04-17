@@ -86,13 +86,33 @@ window.initSocketHandler = function () {
             <div class="card image-card">
                 <div class="card-overlay"></div>
                 <img id="image-${index}" src="${imgData.image.src}" class="card-img-top image-fade" alt="${imgData.name}">
-                    <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-${index}">0%</div>
-                    </div>
-                    <img src="./images/dwnd-img.png" id="download-btn-${index}" class="download-btn" style="display: none;">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-${index}">0%</div>
+                </div>
+                <img src="./images/dwnd-img.png" id="download-btn-${index}" class="download-btn" style="display: none;">
             </div>
         `;
         previewImages.appendChild(card);
+    }
+
+    function createAddMoreCard() {
+        const previewImages = document.getElementById("preview-images");
+        const card = document.createElement("div");
+        card.className = "col-md-4 mb-3";
+        card.id = "add-more-card";
+        card.innerHTML = `
+            <div class="card image-card add-more-card">
+                <div class="card-overlay"></div>
+                <img src="./images/png-icon.svg" id="add-more-img" class="card-img-top" alt="Add More">
+                <div class="add-more-text">Add More</div>
+            </div>
+        `;
+        previewImages.appendChild(card);
+
+        card.addEventListener("click", () => {
+            const fileInput = document.getElementById("fileInput");
+            fileInput.click();
+        });
     }
 
     const sendRequest = (request, index) => {
@@ -195,6 +215,8 @@ window.initSocketHandler = function () {
         if (processedResults.length === 0) {
             alert("Не удалось обработать ни одно изображение.");
             previewModal.hide();
+        } else {
+            createAddMoreCard();
         }
     });
 

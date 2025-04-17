@@ -14,12 +14,11 @@
         </div>
         <button type="submit" class="btn">Cut</button>
 
-        <!-- Панель прогресса скрыта по умолчанию -->
-        <div class="progress-container" id="progress-container" style="display: none;">
-            <div id="progress-bar" class="progress-bar">
-                <span id="progress-text">0%</span>
-            </div>
-        </div>
+        @* <div class="progress-container" id="progress-container" style="display: none;"> *@
+        @*     <div id="progress-bar" class="progress-bar"> *@
+        @*         <span id="progress-text">0%</span> *@
+        @*     </div> *@
+        @* </div> *@
     </form>
 
     <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
@@ -27,20 +26,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="previewModalLabel">Cutterize and save time</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1)"></button>
                 </div>
                 <div class="modal-body">
                     <div id="preview-images" class="row">
-                        <!-- Карточки с изображениями будут добавляться сюда через JS -->
                     </div>
-                    <div class="row mt-3">
-                        <div class="col">
-                            <button id="add-more-btn" class="btn btn-secondary w-100">Add more</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
