@@ -60,7 +60,9 @@ window.initSocketHandler = function () {
             if (imageElement) {
                 imageElement.style.opacity = "0";
                 setTimeout(() => {
-                    imageElement.src = `${wsUrl}${message.previewUrl.split('/').slice(-1)}`;
+                    const newSrc = `${wsUrl}${message.previewUrl.split('/').slice(-1)}`;
+                    console.log(`Обновление src для image-${currentProcessingIndex}: ${newSrc}`);
+                    imageElement.src = newSrc;
                     imageElement.style.opacity = "1";
                 }, 300);
             }
@@ -89,7 +91,10 @@ window.initSocketHandler = function () {
                 <div class="progress">
                     <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-${index}">0%</div>
                 </div>
-                <img src="./images/dwnd-img.png" id="download-btn-${index}" class="download-btn" style="display: none;">
+                <div class="overlay-imgs">
+                    <img src="./images/eye.png" id="eye-btn-${index}" class="eye-btn" style="display: none;">
+                    <img src="./images/dwnd-img.png" id="download-btn-${index}" class="download-btn" style="display: none;">
+                </div>
             </div>
         `;
         previewImages.appendChild(card);
@@ -115,6 +120,16 @@ window.initSocketHandler = function () {
         });
     }
 
+    function removeModalBackdrop() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => {
+            console.log('Удаление modal-backdrop');
+            backdrop.remove();
+        });
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+    }
+
     const sendRequest = (request, index) => {
         return new Promise((resolve, reject) => {
             currentProcessingIndex = index;
@@ -131,6 +146,80 @@ window.initSocketHandler = function () {
             }
         });
     };
+
+    async function processQueue(queue) {
+        while (queue.length > 0) {
+            const { imgData, request, index } = queue.shift();
+            console.log(`Обработка изображения ${index}: ${imgData.name}`);
+
+            try {
+                const { response, index: responseIndex } = await sendRequest(request, index);
+                if (response.type === "result") {
+                    processedResults[responseIndex] = {
+                        previewUrl: response.previewUrl,
+                        zipUrl: response.zipUrl
+                    };
+
+                    const downloadBtn = document.getElementById(`download-btn-${responseIndex}`);
+                    if (downloadBtn) {
+                        downloadBtn.style.display = "block";
+                        downloadBtn.addEventListener("click", () => {
+                            const zipUrl = processedResults[responseIndex].zipUrl;
+                            if (zipUrl) {
+                                const a = document.createElement("a");
+                                const zipSrc = `${wsUrl}${zipUrl.split('/').slice(-1)}`;
+                                console.log(`Скачивание ZIP: ${zipSrc}`);
+                                a.href = zipSrc;
+                                a.download = `result_${responseIndex + 1}.zip`;
+                                a.click();
+                            } else {
+                                alert("ZIP-архив для этого изображения не доступен.");
+                            }
+                        });
+                    } else {
+                        console.error(`Кнопка download-btn-${responseIndex} не найдена`);
+                    }
+
+                    const eyeBtn = document.getElementById(`eye-btn-${responseIndex}`);
+                    if (eyeBtn) {
+                        eyeBtn.style.display = "block";
+                        eyeBtn.addEventListener("click", () => {
+                            console.log(`Клик на eye-btn-${responseIndex}`);
+                            const previewImage = document.getElementById("preview-image");
+                            const previewModal = document.getElementById("imagePreviewModal");
+                            if (!previewImage || !previewModal) {
+                                console.error("Не найдены элементы preview-image или imagePreviewModal");
+                                alert("Ошибка: Не удалось открыть предпросмотр. Проверьте консоль.");
+                                return;
+                            }
+                            const imageSrc = `${wsUrl}${processedResults[responseIndex].previewUrl.split('/').slice(-1)}`;
+                            console.log(`Установка preview-image src: ${imageSrc}`);
+                            previewImage.src = imageSrc;
+                            const modal = new bootstrap.Modal(previewModal, { keyboard: true });
+                            modal.show();
+                            previewModal.addEventListener('hidden.bs.modal', removeModalBackdrop, { once: true });
+                        });
+                    } else {
+                        console.error(`Кнопка eye-btn-${responseIndex} не найдена`);
+                    }
+                }
+            } catch (error) {
+                console.error(`Не удалось обработать изображение ${imgData.name}:`, error);
+                alert(`Не удалось обработать изображение ${imgData.name}. Продолжаем с остальными...`);
+            }
+        }
+
+        if (processedResults.length === 0) {
+            alert("Не удалось обработать ни одно изображение.");
+            const previewModal = bootstrap.Modal.getInstance(document.getElementById('previewModal'));
+            if (previewModal) {
+                previewModal.hide();
+                removeModalBackdrop();
+            }
+        } else {
+            createAddMoreCard();
+        }
+    }
 
     document.getElementById("uploadForm").addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -174,7 +263,9 @@ window.initSocketHandler = function () {
             keyboard: true
         });
         previewModal.show();
+        document.getElementById('previewModal').addEventListener('hidden.bs.modal', removeModalBackdrop, { once: true });
 
+        const queue = [];
         for (const imgData of originalImages) {
             const base64 = await fileToBase64(imgData.file);
             console.log(`Base64 для ${imgData.name} (первые 50 символов):`, base64.substring(0, 50));
@@ -184,40 +275,10 @@ window.initSocketHandler = function () {
                 Configuration: { AlphaLimit: 0, CheckSum: 0, CutterStep: 5 }
             };
 
-            try {
-                const { response, index } = await sendRequest(request, imgData.index);
-                if (response.type === "result") {
-                    processedResults[index] = {
-                        previewUrl: response.previewUrl,
-                        zipUrl: response.zipUrl
-                    };
-
-                    const downloadBtn = document.getElementById(`download-btn-${index}`);
-                    downloadBtn.style.display = "block";
-                    downloadBtn.addEventListener("click", () => {
-                        const zipUrl = processedResults[index].zipUrl;
-                        if (zipUrl) {
-                            const a = document.createElement("a");
-                            a.href = `${wsUrl}${zipUrl.split('/').slice(-1)}`;
-                            a.download = `result_${index + 1}.zip`;
-                            a.click();
-                        } else {
-                            alert("ZIP-архив для этого изображения не доступен.");
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error(`Не удалось обработать изображение ${imgData.name}:`, error);
-                alert(`Не удалось обработать изображение ${imgData.name}. Продолжаем с остальными...`);
-            }
+            queue.push({ imgData, request, index: imgData.index });
         }
 
-        if (processedResults.length === 0) {
-            alert("Не удалось обработать ни одно изображение.");
-            previewModal.hide();
-        } else {
-            createAddMoreCard();
-        }
+        processQueue(queue);
     });
 
     const addMoreBtn = document.getElementById("add-more-btn");

@@ -13,12 +13,6 @@
             <p>Drop or Choose Images</p>
         </div>
         <button type="submit" class="btn">Cut</button>
-
-        @* <div class="progress-container" id="progress-container" style="display: none;"> *@
-        @*     <div id="progress-bar" class="progress-bar"> *@
-        @*         <span id="progress-text">0%</span> *@
-        @*     </div> *@
-        @* </div> *@
     </form>
 
     <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
@@ -35,7 +29,21 @@
             </div>
         </div>
     </div>
-
+    
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagePreviewModalLabel">Предпросмотр изображения</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="preview-image" src="" class="img-fluid" alt="Предпросмотр">
+                </div>
+            </div>
+        </div>
+    </div>
+    
     @if (ViewBag.Message != null)
     {
         <div class="result-message">
